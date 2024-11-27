@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, Text, Pressable, Image } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
-import SpotifyDisplay from './screens/SpotifyDisplay';
 
 const CLIENT_ID = '60e52b498853481ca6d00f6ca3d9ed6d';
 const SCOPES = ['user-read-private', 'user-read-email', 'user-library-read', 'user-follow-read', 'user-top-read'];
 
-export default function SpotifyLogin() {
+export default function SpotifyAuth({ navigation }) {
   const [accessToken, setAccessToken] = useState(null);
   const [buttonOpacity, setButtonOpacity] = useState(1);
 
@@ -32,38 +31,16 @@ export default function SpotifyLogin() {
       const { access_token } = response.params;
       if (access_token) {
         setAccessToken(access_token);
+        navigation.navigate('SpotifyDisplay', { token: access_token });
       } else {
         Alert.alert('Login Failed', 'No access token received.');
       }
     }
   }, [response]);
 
-  const fetchUserProfile = async () => {
-    if (!accessToken) return;
-    try {
-      const res = await fetch('https://api.spotify.com/v1/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (!res.ok) {
-        throw new Error('Failed to fetch user profile.');
-      }
-      const data = await res.json();
-      console.log('User Profile:', data);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      Alert.alert('Error', 'Failed to fetch user profile.');
-    }
-  };
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, [accessToken]);
-
   return (
     <View style={styles.container}>
-      {!accessToken ? (
+      {!accessToken && (
         <Pressable
           style={[styles.button, { opacity: buttonOpacity }]}
           onPressIn={() => setButtonOpacity(0.5)}
@@ -77,8 +54,6 @@ export default function SpotifyLogin() {
           />
           <Text style={styles.text}>Login With Spotify</Text>
         </Pressable>
-      ) : (
-        <SpotifyDisplay token={{ accessToken }} />
       )}
     </View>
   );

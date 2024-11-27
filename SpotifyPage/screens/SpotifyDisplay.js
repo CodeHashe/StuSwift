@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, Image, SafeAreaView, TextInput, ScrollView, Pressable } from "react-native";
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFonts, Montserrat_400Regular, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import fetchSongs from "../data/fetchSongs";
 import fetchArtists from "../data/fetchArtists";
 import fetchRecs from "../data/fetchRecs";
 
-const SpotifyDisplay = (props) => {
+const SpotifyDisplay = () => {
   const [songs, setSongs] = useState([]);
   const [artists, setArtists] = useState([]);
   const [recs, setRecs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [text, onChangeText] = React.useState('');
+  const [text, onChangeText] = useState('');
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { token } = route.params; // Access token from navigation route params
 
   let [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -22,8 +26,8 @@ const SpotifyDisplay = (props) => {
 
   const getSongs = async () => {
     try {
-      console.log("Token received for songs: ", props.token.accessToken);
-      const result = await fetchSongs(props.token.accessToken);
+      console.log("Token received for songs: ", token);
+      const result = await fetchSongs(token);
       setSongs(result.items); 
     } catch (error) {
       console.error("Error fetching songs: ", error);
@@ -32,8 +36,8 @@ const SpotifyDisplay = (props) => {
 
   const getArtists = async () => {
     try {
-      console.log("Token received for artists: ", props.token.accessToken);
-      const result = await fetchArtists(props.token.accessToken);
+      console.log("Token received for artists: ", token);
+      const result = await fetchArtists(token);
       setArtists(result.artists.items); 
       console.log("Artists received: ", result);
     } catch (error) {
@@ -43,15 +47,16 @@ const SpotifyDisplay = (props) => {
 
   const getRecs = async () => {
     try {
-      const result = await fetchRecs(props.token.accessToken);
+      const result = await fetchRecs(token);
       setRecs(result); 
-      console.log("Songs received: ", result);
+      console.log("Recommendations received: ", result);
     } catch (error) {
-      console.error("Error fetching artists: ", error);
+      console.error("Error fetching recommendations: ", error);
     }
   };
 
   useEffect(() => {
+    console.log("Token Received: ", token)
     const fetchData = async () => {
       await getSongs();
       await getArtists();
@@ -59,7 +64,7 @@ const SpotifyDisplay = (props) => {
       setLoading(false); 
     };
     fetchData();
-  }, []);
+  }, [token]);
 
   if (!fontsLoaded) {
     console.log("Fonts not Loaded");
@@ -92,8 +97,8 @@ const SpotifyDisplay = (props) => {
 
         <Text style={styles.savedSongsTitle}>Featured</Text> 
         <FlatList
-          data={recs.playlists.items} // Access the 'items' array in 'playlists'
-          keyExtractor={(item) => item.id.toString()} // Use 'id' for unique key
+          data={recs.playlists.items}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => {
             const albumImage = item.images?.[0]?.url || 'https://via.placeholder.com/100';
             return (
@@ -116,7 +121,18 @@ const SpotifyDisplay = (props) => {
           renderItem={({ item }) => {
             const albumImage = item.track.album?.images?.[0]?.url || 'https://via.placeholder.com/100';
             return (
-              <Pressable style={styles.songItem}>
+              <Pressable 
+                style={styles.songItem} 
+                onPress={() => {
+                  const trackData = {
+                    trackImage: albumImage,
+                    trackTitle: item.track.name,
+                    artistName: item.track.artists[0].name,
+                  };
+                  console.log("Data being sent: ", trackData)
+                  navigation.navigate("SpotifyPlayer", { trackData });
+                }}
+              >
                 <Image source={{ uri: albumImage }} style={styles.albumImage} />
                 <Text style={styles.songTitle}>{item.track.name}</Text>
                 <Text style={styles.artistName}>{item.track.artists[0].name}</Text>
@@ -153,67 +169,17 @@ const SpotifyDisplay = (props) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 3,
-    backgroundColor: "#fff",
-  },
-
-  ScreenTitle:{
-    fontSize: 30,
-    fontFamily: "Montserrat_700Bold",
-    textAlign:"center"
-  },
-
-  loadingContainer: {
-    flex: 4,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  savedSongsTitle: {
-    fontSize: 25,
-    fontFamily: "Inter_400Regular",
-    marginVertical: 10,
-  },
-  songItem: {
-    padding: 10,
-    alignItems: "center",
-    marginHorizontal: 0, // Removes margins from the sides of each item
-  },
-  songTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_400Regular",
-    width: 120,
-    textAlign: "center",
-  },
-  artistName: {
-    fontSize: 13,
-    color: "#555",
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-  },
-  albumImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  horizontalList: {
-    paddingVertical: 10,
-    paddingHorizontal: 0,  // Prevents extra padding on the horizontal axis
-    marginHorizontal: 0,   // Prevents margin on the horizontal axis
-    borderWidth: 0,
-    borderColor: 'transparent'
-  },
-  input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-  },
-  topBox: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 3, backgroundColor: "#fff" },
+  ScreenTitle: { fontSize: 30, fontFamily: "Montserrat_700Bold", textAlign: "center" },
+  loadingContainer: { flex: 4, justifyContent: "center", alignItems: "center" },
+  savedSongsTitle: { fontSize: 25, fontFamily: "Inter_400Regular", marginVertical: 10 },
+  songItem: { padding: 10, alignItems: "center", marginHorizontal: 0 },
+  songTitle: { fontSize: 16, fontFamily: "Inter_400Regular", width: 120, textAlign: "center" },
+  artistName: { fontSize: 13, color: "#555", fontFamily: "Inter_400Regular", textAlign: "center" },
+  albumImage: { width: 100, height: 100, borderRadius: 8, marginBottom: 10 },
+  horizontalList: { paddingVertical: 10, paddingHorizontal: 0, marginHorizontal: 0, borderWidth: 0, borderColor: 'transparent' },
+  input: { height: 40, margin: 12, borderWidth: 1, padding: 10 },
+  topBox: { justifyContent: "center", alignItems: "center" },
 });
 
 export default SpotifyDisplay;

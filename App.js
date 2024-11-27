@@ -5,16 +5,14 @@ import LoginScreen from "./LoginScreen";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native';
-import SpotifyAuth from './SpotifyPage/SpotifyAuth';
+import SpotifyNav from './SpotifyPage/SpotifyNav';
 
 export default function App() {
 
-  const Stack = createNativeStackNavigator();
-
   return (
-  <SafeAreaView style={styles.container}>
-    <SpotifyAuth/>
-  </SafeAreaView>
+    <NavigationContainer>
+    <SpotifyNav/>
+    </NavigationContainer>
   );
 }
 
